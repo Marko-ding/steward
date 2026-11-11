@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Oban-inspired scheduled controller clock</title>
+  <desc id="desc">A seven-sided faceted teal ring surrounding a minimal clock face.</desc>
+  <g>
+    <polygon points="256.00,38.00 426.44,120.08 392.04,147.51 256.00,82.00" fill="#B8F0EE"/><polygon points="426.44,120.08 468.53,304.51 425.64,294.72 392.04,147.51" fill="#78D9D5"/><polygon points="468.53,304.51 350.59,452.41 331.50,412.77 425.64,294.72" fill="#39BDBA"/><polygon points="350.59,452.41 161.41,452.41 180.50,412.77 331.50,412.77" fill="#159B9D"/><polygon points="161.41,452.41 43.47,304.51 86.36,294.72 180.50,412.77" fill="#087B83"/><polygon points="43.47,304.51 85.56,120.08 119.96,147.51 86.36,294.72" fill="#0C6872"/><polygon points="85.56,120.08 256.00,38.00 256.00,82.00 119.96,147.51" fill="#55C9C7"/>
+    <polygon points="256.00,38.00 426.44,120.08 468.53,304.51 350.59,452.41 161.41,452.41 43.47,304.51 85.56,120.08" fill="none" stroke="#0D1117" stroke-width="2"/>
+  </g>
+  <polygon points="256.00,82.00 392.04,147.51 425.64,294.72 331.50,412.77 180.50,412.77 86.36,294.72 119.96,147.51" fill="#0D1117"/>
+  <g><line x1="256.00" y1="130.00" x2="256.00" y2="114.00" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="354.51" y1="177.44" x2="367.02" y2="167.46" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="378.84" y1="284.04" x2="394.44" y2="287.60" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="310.67" y1="369.52" x2="317.61" y2="383.94" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="201.33" y1="369.52" x2="194.39" y2="383.94" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="133.16" y1="284.04" x2="117.56" y2="287.60" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/><line x1="157.49" y1="177.44" x2="144.98" y2="167.46" stroke="#B8F0EE" stroke-width="9" stroke-linecap="round"/></g>
+  <g stroke="#B8F0EE" stroke-linecap="round">
+    <line x1="256" y1="256" x2="256" y2="190" stroke-width="13"/>
+    <line x1="256" y1="256" x2="311" y2="281" stroke-width="13"/>
+  </g>
+  <circle cx="256" cy="256" r="13" fill="#39BDBA"/>
+</svg>
