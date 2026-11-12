@@ -24,7 +24,7 @@ defmodule Steward.MixProject do
 
       # hex.pm
       package: package(),
-      description: "Self-reconciling scheduled jobs for Oban",
+      description: "Self-scheduling jobs for Oban",
 
       # Deps, aliases
       elixirc_paths: elixirc_paths(Mix.env()),
