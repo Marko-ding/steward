@@ -40,7 +40,7 @@ defmodule Steward.Controller.Query do
   # time makes their release schedule them again.
   @doc false
   @spec schedule(Ecto.Queryable.t(), DateTime.t()) :: Ecto.Query.t()
-  @spec schedule(Ecto.Queryable.t(), DateTime.t(), DateTime.t()) :: Ecto.Query.t()
+  @spec schedule(Ecto.Queryable.t(), DateTime.t(), DateTime.t() | nil) :: Ecto.Query.t()
   def schedule(query, now, due_at \\ nil) do
     update(query, [r],
       set: [

@@ -47,3 +47,26 @@ jobs:
       - run: mix compile --warnings-as-errors
       - run: mix credo --strict
       - run: mix test
+
+      # Dialyzer runs in dev, as test/support uses ExUnit, which isn't in the PLT.
+      - name: Restore PLTs
+        id: plt-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: _plts
+          key: plt-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-${{ hashFiles('mix.lock') }}
+          restore-keys: plt-${{ runner.os }}-${{ hashFiles('.tool-versions') }}-
+
+      - name: Build PLTs
+        if: steps.plt-cache.outputs.cache-hit != 'true'
+        run: MIX_ENV=dev mix dialyzer --plt
+
+      # Saved separately, so that PLTs are cached even when dialyzer fails below.
+      - name: Save PLTs
+        if: steps.plt-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: _plts
+          key: ${{ steps.plt-cache.outputs.cache-primary-key }}
+
+      - run: MIX_ENV=dev mix dialyzer --format github

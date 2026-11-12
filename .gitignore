@@ -8,3 +8,4 @@ erl_crash.dump
 steward-*.tar
 /example/
 .claude/settings.local.json
+/_plts/
