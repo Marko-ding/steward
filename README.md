@@ -54,18 +54,19 @@ end
 
 ### Database migration
 
-Steward stores resources in a dedicated table. See `Steward.Migrations.create_resources/1` for options.
+Steward stores resources in a dedicated, versioned table. See `Steward.Migrations` for options
+and how to upgrade to newer versions.
 
 ```sh
-$ mix ecto.gen.migration create_steward_resources
+$ mix ecto.gen.migration add_steward
 ```
 
 ```elixir
-defmodule MyApp.Repo.Migrations.CreateStewardResources do
+defmodule MyApp.Repo.Migrations.AddSteward do
   use Ecto.Migration
 
-  def up, do: Steward.Migrations.create_resources()
-  def down, do: Steward.Migrations.drop_resources()
+  def up, do: Steward.Migrations.up(version: 1)
+  def down, do: Steward.Migrations.down(version: 1)
 end
 ```
 
