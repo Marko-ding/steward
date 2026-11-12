@@ -6,12 +6,12 @@ defmodule Steward.TestRepo.Migrations.CreateStewardResources do
   use Ecto.Migration
 
   def up do
-    Steward.Migrations.create_resources()
+    Steward.Migrations.up(version: 1)
     Steward.Migrations.add_index_to_oban_jobs()
   end
 
   def down do
     Steward.Migrations.remove_index_from_oban_jobs()
-    Steward.Migrations.drop_resources()
+    Steward.Migrations.down(version: 1)
   end
 end

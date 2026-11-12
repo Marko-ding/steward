@@ -175,7 +175,8 @@ defmodule Steward.Controller do
 
   To associate a resource with a domain entity of your choice, you have the following options:
 
-  - The `:meta` field (map) can carry arbitrary domain information, like foreign keys.
+  - The `:meta` field (map) can carry arbitrary domain information, like foreign keys. Look up
+    resources by it with `list_resources_by_meta/2`.
   - You may force the (UUID) `:id` attribute to associate the record with a domain entity.
   - You can store the resource's id on your domain entity.
   """
@@ -220,8 +221,10 @@ defmodule Steward.Controller do
 
       list_resources_by_meta(MyController, %{"order_id" => 123})
 
-  Uses the GIN index on `:meta` created by `Steward.Migrations.create_resources/1`. Values are
-  compared in their JSON form, e.g. atoms match strings.
+  Values are compared in their JSON form, e.g. atoms match strings.
+
+  Uses the GIN index on `:meta` created by `Steward.Migrations.up/1`. If you chose not to create
+  this index in your migration, this function's query will result in a full table scan.
   """
   @doc since: "0.1.0"
   @spec list_resources_by_meta(module, map) :: [Steward.Resource.t()]
