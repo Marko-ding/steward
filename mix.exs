@@ -19,6 +19,9 @@ defmodule Steward.MixProject do
       homepage_url: @source_url,
       docs: docs(),
 
+      # PLTs live in _plts so that CI can cache them.
+      dialyzer: [plt_local_path: "_plts", plt_core_path: "_plts"],
+
       # hex.pm
       package: package(),
       description: "Self-reconciling scheduled jobs for Oban",
@@ -92,8 +95,9 @@ defmodule Steward.MixProject do
       {:jason, "~> 1.4", optional: true},
       {:postgrex, ">= 0.0.0", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:ex_doc, "~> 0.40", only: :dev, runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
     ]
   end
 end

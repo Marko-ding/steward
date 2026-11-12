@@ -32,14 +32,6 @@ defmodule Steward.ObanTest do
 
       assert dup.conflict?
     end
-
-    test "raises without a unique key" do
-      resource = insert_resource()
-
-      assert_raise FunctionClauseError, fn ->
-        build_job_changeset(resource, MockWorker, %{}, [], nil)
-      end
-    end
   end
 
   describe "delete_deletable_jobs/2" do

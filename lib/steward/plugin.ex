@@ -65,7 +65,7 @@ defmodule Steward.Plugin do
   @lifeline_opts [:conf, :steward, :lifeline_poll_interval, :lifeline_reconciliation_timeout]
 
   @doc false
-  @spec init(keyword) :: Supervisor.on_start()
+  @spec init(keyword) :: {:ok, {Supervisor.sup_flags(), [Supervisor.child_spec()]}}
   def init(opts) do
     children = [
       {Pruner, Keyword.take(opts, @pruner_opts)},
