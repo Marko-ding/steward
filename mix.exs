@@ -89,7 +89,7 @@ defmodule Steward.MixProject do
 
   defp deps do
     [
-      {:oban, "~> 2.20"},
+      {:oban, "~> 2.22"},
       {:ecto_sql, "~> 3.14"},
       {:telemetry, "~> 1.3"},
       {:jason, "~> 1.4", optional: true},

@@ -36,7 +36,7 @@ serves as centralized boilerplate. Reconciliation of a single object is performe
 ### Requirements
 
   * Elixir 1.16 or later
-  * Oban 2.20 or later, tested with the `Oban.Engines.Basic` engine
+  * Oban 2.22 or later, tested with the `Oban.Engines.Basic` engine
   * PostgreSQL 12 or later. Steward relies on Postgres features (`jsonb` containment,
     `FOR UPDATE SKIP LOCKED`), so Oban's SQLite and MySQL engines are not supported.
 
