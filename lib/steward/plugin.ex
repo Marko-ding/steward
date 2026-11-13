@@ -32,8 +32,7 @@ defmodule Steward.Plugin do
       `c:Steward.Controller.load/1` or `c:Steward.Worker.spec/3` raised) a resource is
       reconciled again, in milliseconds. The error is stored in the resource's
       `:reconciliation_error` field. Errors affecting a whole batch of resources back off
-      the whole batch, without storing the error. Defaults to
-      1 hour.
+      the whole batch, without storing the error. Defaults to 1 hour.
     * `:prune_poll_interval` - how often to prune, in milliseconds. Defaults to `60_000`.
     * `:prune_batch_size` - resources pruned per batch. Defaults to `500`.
     * `:prune_max_age` - how long after cancellation a resource's jobs are deleted, in

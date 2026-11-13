@@ -18,7 +18,7 @@ defmodule Steward.Oban do
   """
   @doc since: "0.1.0"
   @spec all_resource_jobs(Resource.t() | [Resource.t()]) :: [Oban.Job.t()]
-  @spec all_resource_jobs(module, Resource.t() | [Resource.t()]) :: [Oban.Job.t()]
+  @spec all_resource_jobs(Oban.name(), Resource.t() | [Resource.t()]) :: [Oban.Job.t()]
   def all_resource_jobs(oban \\ Oban, resource_or_resources)
   def all_resource_jobs(oban, %Resource{} = resource), do: all_resource_jobs(oban, [resource])
   def all_resource_jobs(oban, resources), do: Oban.all_jobs(oban, Query.resource_jobs(resources))
@@ -34,7 +34,8 @@ defmodule Steward.Oban do
   """
   @doc since: "0.1.0"
   @spec delete_resource_jobs(Resource.t() | [Resource.t()]) :: {:ok, non_neg_integer()}
-  @spec delete_resource_jobs(module, Resource.t() | [Resource.t()]) :: {:ok, non_neg_integer()}
+  @spec delete_resource_jobs(Oban.name(), Resource.t() | [Resource.t()]) ::
+          {:ok, non_neg_integer()}
   def delete_resource_jobs(oban \\ Oban, resource_or_resources)
 
   def delete_resource_jobs(oban, %Resource{} = resource),

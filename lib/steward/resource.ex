@@ -1,6 +1,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 defmodule Steward.Resource do
+  @moduledoc """
+  # TODO: @claude
+  """
+
   @moduledoc since: "0.1.0"
 
   use Ecto.Schema

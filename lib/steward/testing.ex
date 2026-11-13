@@ -10,13 +10,7 @@ defmodule Steward.Testing do
 
   ## Usage
 
-      test "fulfills the order after two days" do
-        order = MyApp.Orders.create!()
-
-        {:ok, 1} = Steward.Testing.reconcile(MyApp.Oban, MyApp.Steward)
-
-        assert_enqueued worker: MyApp.Steward.FulfillOrderWorker
-      end
+  #{Steward.Utils.extract_from_readme("testing-example")}
 
   Combined with `Oban.drain_queue/2`, you can run a resource's whole lifecycle: performed jobs
   schedule their resource for reconciliation again, which the next `reconcile/2` picks up.
@@ -43,13 +37,7 @@ defmodule Steward.Testing do
   `c:Steward.Controller.load/1` or `c:Steward.Worker.spec/3` raises, or the reconciliation
   fails as a whole, the error is raised in the calling process.
 
-  With Ecto's SQL sandbox, only resources visible to the calling process are reconciled.
-
-  `oban` is the name of the Oban instance and defaults to `Oban`.
-
-  Returns `{:ok, resource_count}`, the number of reconciled resources. A resource reconciled
-  more than once in the same call (e.g. scheduled again during its reconciliation) is counted
-  each time.
+  Returns `{:ok, resource_count}`, the number of reconciled resources.
   """
   @doc since: "0.1.0"
   @spec reconcile(module) :: {:ok, non_neg_integer}

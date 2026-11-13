@@ -27,7 +27,7 @@ Oban jobs by _resource objects_, which typically correspond to domain (process) 
 Entities are grouped by a _controller_ which defines the set of workers to reconcile and
 serves as centralized boilerplate. Reconciliation of a single object is performed…
 
-- after every job invocation
+- after every job invocation (if job enters terminal state)
 - periodically (see the `:reconcile_interval` option of `Steward.Controller`)
 - or on demand (see `Steward.Controller.schedule_resource!/2`)
 
@@ -91,9 +91,10 @@ end
 
 ### Configuration
 
-#### Steward repository
+#### Steward module
 
-To configure Steward's resource repository, define a module in your application as follows:
+Serves as Steward's resource repository, defining which `Ecto.Repo` and table details to
+use to access resources. Define a module in your application as follows:
 
 ```elixir
 defmodule MyApp.Steward do
@@ -142,7 +143,7 @@ type-specific callbacks used in the reconciliation and in workers.
 <!-- MDOC:controller-example -->
 
 ```elixir
-defmodule MyApp.Steward.OrderController do
+defmodule MyApp.OrderController do
   use Steward.Controller,
     steward: MyApp.Steward,
     reconcile_interval: :timer.hours(24)
@@ -201,15 +202,20 @@ See `Steward.Worker` for more information.
 Oban doesn't run plugins in its `:manual` and `:inline` testing modes, so Steward's
 reconciliation loop won't run in your tests. Trigger it with `Steward.Testing.reconcile/2`:
 
+<!-- MDOC:testing-example -->
+
 ```elixir
 test "fulfills the order" do
   order = MyApp.Orders.create!()
+  {:ok, _} = MyApp.OrderController.create_resource(%{id: order.id})
 
   {:ok, 1} = Steward.Testing.reconcile(MyApp.Oban, MyApp.Steward)
 
   assert_enqueued worker: MyApp.Steward.FulfillOrderWorker
 end
 ```
+
+<!-- MDOC:testing-example -->
 
 See `Steward.Testing` for more information.
 

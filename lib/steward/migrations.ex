@@ -16,9 +16,9 @@ defmodule Steward.Migrations do
         def down, do: Steward.Migrations.down(version: 1)
       end
 
-  Steward additionally needs an index on Oban's `oban_jobs` table, which isn't versioned. Add it
-  with `add_index_to_oban_jobs/1` and `remove_index_from_oban_jobs/1` from another migration,
-  creating it concurrently on a large table:
+  Steward additionally benefits from an index on Oban's `oban_jobs` table for performant lookups
+  of jobs it manages. Add it with `add_index_to_oban_jobs/1` and `remove_index_from_oban_jobs/1`
+  from another migration, creating it concurrently on a large table:
 
       defmodule MyApp.Repo.Migrations.AddStewardIndexToObanJobs do
         use Ecto.Migration

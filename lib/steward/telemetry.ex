@@ -15,8 +15,8 @@ defmodule Steward.Telemetry do
     * `[:steward, :reconciliation, :resource, :start | :stop | :exception]` - a single
       resource, i.e. its `c:Steward.Controller.load/1` and its workers'
       `c:Steward.Worker.spec/3` calls. Metadata: `:steward`, `:controller`, `:resource`.
-      `:exception` event means the resource's reconciliation failed and was rescheduled after
-      the `:reconciliation_error_backoff`; the error is also stored on the resource.
+      An `:exception` event means the resource's reconciliation failed and was rescheduled
+      after the `:reconciliation_error_backoff`; the error is also stored on the resource.
 
   ## Lifeline
 

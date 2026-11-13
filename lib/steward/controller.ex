@@ -67,10 +67,12 @@ defmodule Steward.Controller do
   @callback workers() :: [module]
 
   @doc """
-  Called with the resource before `c:Steward.Worker.spec/3` and `c:Steward.Worker.perform/2`.
+  Called with the resource before reconciliation and processing.
 
-  Implementation may fill the virtual `:object` field in the `Steward.Resource.t` struct
-  with arbitrary domain data.
+  This function allows to load arbitrary domain data before calls to `c:Steward.Worker.spec/3`,
+  `c:Steward.Worker.perform/2`, and within client calls to `Steward.Controller.process_resource/4`.
+
+  Fill the virtual `:object` field in the `Steward.Resource.t` struct with your data.
 
   Return `:cancel` if the given resource is not relevant anymore and should be removed from
   the reconciliation loop. Its pending jobs are deleted, yet currently executing jobs continue
@@ -139,6 +141,16 @@ defmodule Steward.Controller do
     resources by it with `list_resources_by_meta/2`.
   - You may force the (UUID) `:id` attribute to associate the record with a domain entity.
   - You can store the resource's id on your domain entity.
+
+  ## Example
+
+      create_resource(MyController, %{id: 123})
+
+  or
+      
+      create_resource(MyController, %{meta: %{order_id: => 123}})
+
+  Last argument is passed as options to `c:Ecto.Repo.insert/2`.
   """
   @doc since: "0.1.0"
   @spec create_resource(module) :: {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
@@ -179,12 +191,14 @@ defmodule Steward.Controller do
   equal values. Nested maps match partially as well, lists match if they contain all given
   elements.
 
-      list_resources_by_meta(MyController, %{"order_id" => 123})
-
   Values are compared in their JSON form, e.g. atoms match strings.
 
   Uses the GIN index on `:meta` created by `Steward.Migrations.up/1`. If you chose not to create
   this index in your migration, this function's query will result in a full table scan.
+
+  ## Example
+
+      list_resources_by_meta(MyController, %{"order_id" => 123})
   """
   @doc since: "0.1.0"
   @spec list_resources_by_meta(module, map) :: [Steward.Resource.t()]
@@ -226,7 +240,7 @@ defmodule Steward.Controller do
         [...]
 
         def process_order(order, fun) do
-          # See `create_resource/3` for options how to connect a resource to a domain entity.
+          # See `create_resource/3` for options for how to connect a resource to a domain entity.
           {:ok, resource} = get_resource(order.steward_resource_id)
 
           process_resource(resource, fn resource ->
