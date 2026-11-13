@@ -76,8 +76,8 @@ defmodule Steward.Controller do
   the reconciliation loop. Its pending jobs are deleted, yet currently executing jobs continue
   to run.
 
-  Implementation must be free of side effects on Steward resources, e.g. no calls to
-  `schedule_resource!/2`.
+  Implementation should ideally be pure and must be free of side effects on Steward resources,
+  e.g. no calls to `schedule_resource!/2`.
   """
   @doc since: "0.1.0"
   @callback load(Steward.Resource.t()) :: {:ok, Steward.Resource.t()} | :cancel
@@ -106,49 +106,8 @@ defmodule Steward.Controller do
         }
       end
 
-      @doc "See `Steward.Controller.create_resource/3`."
-      @spec create_resource() :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
-      @spec create_resource(map) :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
-      @spec create_resource(map, keyword) :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
-      def create_resource(attrs \\ %{}, opts \\ []) do
-        Controller.create_resource(__MODULE__, attrs, opts)
-      end
-
-      @doc "See `Steward.Controller.get_resource/2`."
-      @spec get_resource(Resource.id()) :: {:ok, Resource.t()} | {:error, :not_found}
-      def get_resource(resource_id) do
-        Controller.get_resource(__MODULE__, resource_id)
-      end
-
-      @doc "See `Steward.Controller.list_resources_by_meta/2`."
-      @spec list_resources_by_meta(map) :: [Resource.t()]
-      def list_resources_by_meta(meta) do
-        Controller.list_resources_by_meta(__MODULE__, meta)
-      end
-
-      @doc "See `Steward.Controller.schedule_resource!/2`."
-      @spec schedule_resource!(Resource.t() | Resource.id()) :: Resource.t()
-      def schedule_resource!(resource_or_id) do
-        Controller.schedule_resource!(__MODULE__, resource_or_id)
-      end
-
-      @doc "See `Steward.Controller.process_resource/4`."
-      @spec process_resource(Resource.t(), Controller.processor()) :: :cancelled | term
-      @spec process_resource(Resource.t(), Controller.processor(), keyword) :: :cancelled | term
-      def process_resource(resource, fun, opts \\ []) do
-        Controller.process_resource(__MODULE__, resource, fun, opts)
-      end
-
-      @doc "See `Steward.Controller.cancel_resource!/2`."
-      @spec cancel_resource!(Resource.t() | Resource.id()) :: Steward.Resource.t()
-      def cancel_resource!(resource_or_id) do
-        Controller.cancel_resource!(__MODULE__, resource_or_id)
-      end
-
-      @doc "See `Steward.Controller.resume_resource!/2`."
-      @spec resume_resource!(Resource.t() | Resource.id()) :: Steward.Resource.t()
-      def resume_resource!(resource_or_id) do
-        Controller.resume_resource!(__MODULE__, resource_or_id)
+      if Keyword.get(@steward_controller_opts, :shorthands, true) do
+        use Steward.Controller.Shorthands
       end
     end
   end
@@ -158,7 +117,8 @@ defmodule Steward.Controller do
   def validate_opts!(opts) do
     validate_schema!(opts,
       steward: :any,
-      reconcile_interval: :timeout
+      reconcile_interval: :timeout,
+      shorthands: :boolean
     )
 
     if not Keyword.has_key?(opts, :steward) do
