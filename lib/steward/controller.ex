@@ -144,11 +144,11 @@ defmodule Steward.Controller do
 
   ## Example
 
-      create_resource(MyController, %{id: 123})
+      create_resource(MyController, %{id: "1d7a1e1c-6a52-4f0e-9a8e-2f4c1b5d3e9a"})
 
   or
-      
-      create_resource(MyController, %{meta: %{order_id: => 123}})
+
+      create_resource(MyController, %{meta: %{order_id: 123}})
 
   Last argument is passed as options to `c:Ecto.Repo.insert/2`.
   """
@@ -270,7 +270,8 @@ defmodule Steward.Controller do
         :cancelled
 
       repo.in_transaction?() ->
-        raise "#{controller_to_string!(controller)}: process_resource must not be called within a transaction"
+        raise "#{controller_to_string!(controller)}: " <>
+                "process_resource must not be called within a transaction"
 
       true ->
         do_process_resource(controller, resource, fun, opts)
@@ -284,7 +285,7 @@ defmodule Steward.Controller do
       {:ok, resource} ->
         {schedule?, result} =
           try do
-            fun.(resource)
+            {_schedule?, _result} = fun.(resource)
           catch
             kind, reason ->
               if schedule_on_error?, do: schedule_resource!(controller, resource)
@@ -363,7 +364,8 @@ defmodule Steward.Controller do
         # Tell a pruned resource apart from a missing one.
         if controller |> Query.resource(resource_or_id) |> repo(controller).exists?() do
           raise ResourceAlreadyPrunedError,
-                "#{controller_to_string!(controller)}: resource #{inspect(resource_id(resource_or_id))} already pruned"
+                "#{controller_to_string!(controller)}: " <>
+                  "resource #{inspect(resource_id(resource_or_id))} already pruned"
         else
           raise_not_found!(controller, resource_or_id)
         end
@@ -430,7 +432,8 @@ defmodule Steward.Controller do
 
   defp raise_not_found!(controller, resource_or_id) do
     raise ResourceNotFoundError,
-          "#{controller_to_string!(controller)}: resource #{inspect(resource_id(resource_or_id))} not found"
+          "#{controller_to_string!(controller)}: " <>
+            "resource #{inspect(resource_id(resource_or_id))} not found"
   end
 
   defp repo(controller), do: controller.__steward__().__steward_config__().repo

@@ -12,6 +12,11 @@ reconciliation of scheduled jobs against a dynamically calculated specification.
 Steward is inspired by Kubernetes controllers and borrows some terminology and ideas
 from business rule engines, while staying unintrusive on your codebase.
 
+> #### Alpha {: .warning}
+>
+> Steward is in an early stage of development. Expect bugs and breaking changes to its API
+> and database schema between minor versions until 1.0.
+
 ## How it works
 
 Steward separates job trigger logic from domain operations to reduce redundancy and

@@ -7,7 +7,7 @@ defmodule Steward.Telemetry do
   ## Reconciliation
 
     * `[:steward, :reconciliation, :start | :stop | :exception]` - a reconciliation run,
-      which reconciles all due resources in batches. Metadata `:oban` and `:steward`.
+      which reconciles all due resources in batches. Metadata: `:oban`, `:steward`.
       `:stop` carries `:batch_count` and `:resource_count` measurements. An `:exception`
       event means a whole batch failed (e.g. a resource's controller no longer exists,
       or a database error).

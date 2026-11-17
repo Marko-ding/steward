@@ -18,7 +18,7 @@ defmodule Steward.Testing do
       {:ok, _} = Steward.Testing.reconcile(MyApp.Oban, MyApp.Steward)
       Oban.drain_queue(queue: :default, with_scheduled: true)
 
-       # The order's job succeeded and scheduled the order for reconciliation again.
+      # The order's job succeeded and scheduled the order for reconciliation again.
       assert {:ok, 1} = Steward.Testing.reconcile(MyApp.Oban, MyApp.Steward)
   """
 

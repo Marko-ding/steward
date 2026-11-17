@@ -34,6 +34,20 @@ defmodule Steward.ObanTest do
     end
   end
 
+  describe "all_resource_jobs/2" do
+    test "returns no jobs for no resources" do
+      assert Steward.Oban.all_resource_jobs(TestOban, []) == []
+    end
+  end
+
+  describe "delete_resource_jobs/2" do
+    test "deletes no jobs for no resources" do
+      insert_job(insert_resource())
+
+      assert Steward.Oban.delete_resource_jobs(TestOban, []) == {:ok, 0}
+    end
+  end
+
   describe "delete_deletable_jobs/2" do
     test "only deletes pending jobs" do
       resource = insert_resource()

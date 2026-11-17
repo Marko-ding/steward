@@ -96,7 +96,10 @@ defmodule Steward.Reconciliation.Locking do
           ),
         reconciliation_state:
           fragment(
-            "CASE WHEN COALESCE(?, CASE WHEN ? IS NULL THEN ? END) IS NULL THEN 'idle' ELSE 'scheduled' END",
+            """
+            CASE WHEN COALESCE(?, CASE WHEN ? IS NULL THEN ? END) IS NULL
+            THEN 'idle' ELSE 'scheduled' END
+            """,
             r.reconciliation_due_at,
             r.cancelled_at,
             v.periodic_due_at
@@ -108,12 +111,11 @@ defmodule Steward.Reconciliation.Locking do
     |> repo.update_all([], prefix: prefix)
   end
 
-  # Reschedules claimed resources after `:reconciliation_error_backoff` milliseconds plus up to
-  # 10% jitter. The error isn't recorded on the resources, as it can't be attributed to any of
-  # them; it's reported through telemetry instead. The jitter spreads the resources over different batches on retry,
-  # so a single bad resource doesn't keep failing the same neighbours. Unlike
-  # `release_batch/2`, this doesn't resolve the resources' controllers, so it also works when
-  # a controller no longer exists.
+  # Reschedules claimed resources after `:reconciliation_error_backoff` milliseconds plus jitter.
+  # The error isn't recorded on the resources, as it can't be attributed to any of them;
+  # it's reported through telemetry instead.
+  # Unlike `release_batch/2`, this doesn't resolve the resources' controllers, so it also works
+  # when a controller no longer exists.
   @spec backoff_batch(module, [Resource.t()], keyword) :: {non_neg_integer, nil}
   def backoff_batch(steward, batch, opts) do
     %{repo: repo, table: table, prefix: prefix} = steward.__steward_config__()

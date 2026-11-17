@@ -2,7 +2,33 @@
 
 defmodule Steward.Resource do
   @moduledoc """
-  # TODO: @claude
+  A resource object, the unit of reconciliation.
+
+  A resource belongs to a controller (see `Steward.Controller`) and typically corresponds to
+  a domain entity, e.g. an order. Steward reconciles each resource's jobs separately, against
+  the spec its controller's workers compute for it.
+
+  Create resources with `Steward.Controller.create_resource/3`, and manage them with the
+  other functions in `Steward.Controller`.
+
+  ## Fields
+
+    * `:controller` - the name of the resource's controller module.
+    * `:id` - the resource's UUID, unique per controller. Generated unless given on creation.
+    * `:meta` - a map of arbitrary domain information, e.g. foreign keys, see
+      `Steward.Controller.list_resources_by_meta/2`. Stored as JSON.
+    * `:object` - virtual field holding the domain data loaded by
+      `c:Steward.Controller.load/1`. Not persisted.
+    * `:cancelled_at` - when the resource was cancelled, see
+      `Steward.Controller.cancel_resource!/2`.
+    * `:pruned_at` - when the jobs of the cancelled resource were deleted, see the
+      `:prune_max_age` option of `Steward.Plugin`.
+    * `:reconciliation_state` - `:idle`, `:scheduled` (due at `:reconciliation_due_at`) or
+      `:reconciling`, set at `:reconciliation_state_set_at`.
+    * `:reconciliation_error` - the error of the last failed reconciliation, if any. Cleared
+      when the resource is reconciled again.
+
+  Steward manages all fields but `:meta` and `:object`. Don't change them yourself.
   """
 
   @moduledoc since: "0.1.0"
@@ -56,10 +82,17 @@ defmodule Steward.Resource do
     |> unique_constraint(:id, name: "#{Ecto.get_meta(resource, :source)}_pkey")
   end
 
+  @doc """
+  Returns whether the resource is cancelled, see `Steward.Controller.cancel_resource!/2`.
+  """
   @doc since: "0.1.0"
   @spec cancelled?(t) :: boolean
   def cancelled?(%__MODULE__{} = resource), do: not is_nil(resource.cancelled_at)
 
+  @doc """
+  Returns whether the jobs of the cancelled resource were pruned, see the `:prune_max_age`
+  option of `Steward.Plugin`.
+  """
   @doc since: "0.1.0"
   @spec pruned?(t) :: boolean
   def pruned?(%__MODULE__{} = resource), do: not is_nil(resource.pruned_at)

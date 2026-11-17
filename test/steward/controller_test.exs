@@ -119,6 +119,16 @@ defmodule Steward.ControllerTest do
       end
     end
 
+    test "schedules the resource and raises when fun returns an invalid value" do
+      resource = insert_idle_resource()
+
+      assert_raise MatchError, fn ->
+        Controller.process_resource(MockController, resource, fn _ -> :invalid end)
+      end
+
+      assert scheduled?(resource)
+    end
+
     test "doesn't schedule the resource on errors with schedule_on_error: false" do
       resource = insert_idle_resource()
 

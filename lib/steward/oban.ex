@@ -5,6 +5,8 @@ defmodule Steward.Oban do
   Helper functions for dealing with Steward managed jobs.
   """
 
+  @moduledoc since: "0.1.0"
+
   alias Steward.Oban.Query
   alias Steward.Resource
 
@@ -21,6 +23,7 @@ defmodule Steward.Oban do
   @spec all_resource_jobs(Oban.name(), Resource.t() | [Resource.t()]) :: [Oban.Job.t()]
   def all_resource_jobs(oban \\ Oban, resource_or_resources)
   def all_resource_jobs(oban, %Resource{} = resource), do: all_resource_jobs(oban, [resource])
+  def all_resource_jobs(_oban, []), do: []
   def all_resource_jobs(oban, resources), do: Oban.all_jobs(oban, Query.resource_jobs(resources))
 
   @doc """
@@ -40,6 +43,8 @@ defmodule Steward.Oban do
 
   def delete_resource_jobs(oban, %Resource{} = resource),
     do: delete_resource_jobs(oban, [resource])
+
+  def delete_resource_jobs(_oban, []), do: {:ok, 0}
 
   def delete_resource_jobs(oban, resources) do
     Oban.delete_all_jobs(oban, Query.resource_jobs(resources))
