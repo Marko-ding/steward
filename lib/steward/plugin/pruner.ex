@@ -118,7 +118,7 @@ defmodule Steward.Plugin.Pruner do
   end
 
   defp schedule_poll(state) do
-    prune_poll_interval = Map.get(state, :prune_poll_interval, 60_000)
+    prune_poll_interval = Map.get(state, :prune_poll_interval, 30_000)
 
     Process.send_after(self(), :poll, prune_poll_interval)
 

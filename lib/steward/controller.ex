@@ -85,6 +85,10 @@ defmodule Steward.Controller do
   @callback load(Steward.Resource.t()) :: {:ok, Steward.Resource.t()} | :cancel
 
   defmacro __using__(opts) do
+    # Expand aliases (e.g. the `:steward` module) as if inside a function, so they become
+    # runtime rather than compile-time dependencies of the controller.
+    opts = Macro.expand_literals(opts, %{__CALLER__ | function: {:__steward__, 0}})
+
     quote do
       alias Steward.Controller
       alias Steward.Resource

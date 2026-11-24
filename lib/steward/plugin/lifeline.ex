@@ -90,7 +90,7 @@ defmodule Steward.Plugin.Lifeline do
   end
 
   defp schedule_poll(state) do
-    lifeline_poll_interval = Map.get(state, :lifeline_poll_interval, 60_000)
+    lifeline_poll_interval = Map.get(state, :lifeline_poll_interval, 30_000)
 
     Process.send_after(self(), :poll, lifeline_poll_interval)
 

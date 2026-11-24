@@ -25,7 +25,7 @@ defmodule Steward.Plugin.Reconciler do
     state =
       opts
       |> Map.new()
-      |> Map.put_new(:reconcile_poll_interval, 5_000)
+      |> Map.put_new(:reconcile_poll_interval, 30_000)
       |> Map.put(:attempt, 0)
 
     {:ok, schedule_poll(state)}

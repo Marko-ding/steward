@@ -5,6 +5,10 @@ defmodule Steward do
   @moduledoc since: "0.1.0"
 
   defmacro __using__(opts) do
+    # Expand aliases (e.g. the `:repo` module) as if inside a function, so they become
+    # runtime rather than compile-time dependencies of the steward module.
+    opts = Macro.expand_literals(opts, %{__CALLER__ | function: {:__steward_config__, 0}})
+
     quote do
       use Supervisor
 
