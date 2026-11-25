@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+### Added
+
+- `Steward.Controller.upsert_resource/3` creates a resource or schedules the existing one with
+  the same id.
+
 ### Changed
 
 - `Steward.Plugin` polls every 30 seconds by default: `:reconcile_poll_interval` was `5_000`,
