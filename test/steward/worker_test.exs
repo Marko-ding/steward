@@ -28,14 +28,11 @@ defmodule Steward.WorkerTest do
   defp last_attempt(resource), do: job(resource, %{attempt: 2})
 
   describe "perform/1" do
-    test "calls perform/2 with the job and the loaded resource", %{resource: resource} do
+    test "calls perform/2 with the job and the loaded object", %{resource: resource} do
       job = job(resource)
-      expect(MockController, :load, fn resource -> {:ok, %{resource | object: :loaded}} end)
-
-      expect(MockWorker, :perform, fn ^job, %{id: id, object: :loaded} ->
-        assert id == resource.id
-        :ok
-      end)
+      resource_id = resource.id
+      expect(MockController, :load, fn %{id: ^resource_id} -> {:ok, :loaded} end)
+      expect(MockWorker, :perform, fn ^job, :loaded -> :ok end)
 
       assert Steward.Worker.perform(job) == :ok
     end

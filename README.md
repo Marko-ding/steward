@@ -161,8 +161,8 @@ defmodule MyApp.OrderController do
     case MyApp.Orders.get!(resource.id) do
       # Returning :cancel stops reconciliation of the resource object.
       %{state: :cancelled} -> :cancel
-      # Fill the virtual `object` field with arbitrary data.
-      order -> {:ok, %{resource | object: order}}
+      # The loaded object, passed to the workers' spec/3 and perform/2.
+      order -> {:ok, order}
     end
   end
 end
@@ -181,7 +181,7 @@ defmodule MyApp.Steward.FulfillOrderWorker do
   use Steward.Worker, queue: :default, max_attempts: 5
 
   @impl Steward.Worker
-  def spec(spec, %{object: order} = _resource, _existing_resource_jobs) do
+  def spec(spec, order, _existing_resource_jobs) do
     if order.fulfilled do
       spec
     else
@@ -190,7 +190,7 @@ defmodule MyApp.Steward.FulfillOrderWorker do
   end
 
   @impl Steward.Worker
-  def perform(_oban_job, %{object: order}) do
+  def perform(_oban_job, order) do
     # Invalidates the order.fulfilled precondition in spec/3.
     MyApp.Orders.mark_fulfilled!(order)
     :ok

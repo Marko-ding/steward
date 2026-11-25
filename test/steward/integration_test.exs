@@ -32,7 +32,7 @@ defmodule Steward.IntegrationTest do
     def load(resource) do
       case Orders.get(resource.id) do
         nil -> :cancel
-        order -> {:ok, %{resource | object: order}}
+        order -> {:ok, order}
       end
     end
   end
@@ -43,7 +43,7 @@ defmodule Steward.IntegrationTest do
     use Steward.Worker, queue: :default
 
     @impl Steward.Worker
-    def spec(spec, %{object: order}, _jobs) do
+    def spec(spec, order, _jobs) do
       if order.paid_at do
         spec
       else
@@ -52,7 +52,7 @@ defmodule Steward.IntegrationTest do
     end
 
     @impl Steward.Worker
-    def perform(_job, %{object: order}) do
+    def perform(_job, order) do
       Orders.update!(order.id, &%{&1 | reminded?: true})
       :ok
     end
@@ -64,12 +64,12 @@ defmodule Steward.IntegrationTest do
     use Steward.Worker, queue: :default
 
     @impl Steward.Worker
-    def spec(spec, %{object: order}, _jobs) do
+    def spec(spec, order, _jobs) do
       if order.paid_at && !order.fulfilled?, do: schedule(spec), else: spec
     end
 
     @impl Steward.Worker
-    def perform(_job, %{object: order}) do
+    def perform(_job, order) do
       Orders.update!(order.id, &%{&1 | fulfilled?: true})
       :ok
     end

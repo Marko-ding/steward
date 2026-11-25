@@ -52,7 +52,13 @@ defmodule Steward.Controller do
   Function passed to `process_resource/4`. Returns `{schedule?, result}`: when `schedule?` is
   true, the resource is scheduled for reconciliation; `result` is passed through.
   """
-  @type processor :: (Resource.t() -> {boolean, term})
+  @type processor :: (object -> {boolean, term})
+
+  @typedoc """
+  Arbitrary domain data returned by `c:load/1`, passed to `c:Steward.Worker.spec/3`,
+  `c:Steward.Worker.perform/2` and the `t:processor/0` of `process_resource/4`.
+  """
+  @type object :: term
 
   @doc false
   @callback __steward__() :: module
@@ -69,10 +75,10 @@ defmodule Steward.Controller do
   @doc """
   Called with the resource before reconciliation and processing.
 
-  This function allows to load arbitrary domain data before calls to `c:Steward.Worker.spec/3`,
-  `c:Steward.Worker.perform/2`, and within client calls to `Steward.Controller.process_resource/4`.
-
-  Fill the virtual `:object` field in the `Steward.Resource.t` struct with your data.
+  Returns `{:ok, object}` with arbitrary domain data, e.g. the domain entity the resource
+  corresponds to. The loaded object is passed to `c:Steward.Worker.spec/3`,
+  `c:Steward.Worker.perform/2`, and to the function given to `Steward.Controller.process_resource/4`.
+  Include the resource (or parts of it, like its `:meta`) in the loaded object if these need it.
 
   Return `:cancel` if the given resource is not relevant anymore and should be removed from
   the reconciliation loop. Its pending jobs are deleted, yet currently executing jobs continue
@@ -82,7 +88,7 @@ defmodule Steward.Controller do
   e.g. no calls to `schedule_resource!/2`.
   """
   @doc since: "0.1.0"
-  @callback load(Steward.Resource.t()) :: {:ok, Steward.Resource.t()} | :cancel
+  @callback load(Steward.Resource.t()) :: {:ok, object} | :cancel
 
   defmacro __using__(opts) do
     # Expand aliases (e.g. the `:steward` module) as if inside a function, so they become
@@ -266,7 +272,7 @@ defmodule Steward.Controller do
   Loads a resource, processes it through a handler, and optionally schedules it for
   reconciliation.
 
-  `fun` receives the loaded resource and returns `{schedule?, result}`. When `schedule?`
+  `fun` receives the loaded object (see `c:load/1`) and returns `{schedule?, result}`. When `schedule?`
   is true, the resource is scheduled for reconciliation. `result` is returned.
 
   If `c:Steward.Controller.load/1` returns `:cancel`, `fun` is not called and this function
@@ -297,11 +303,11 @@ defmodule Steward.Controller do
           # See `create_resource/3` for options for how to connect a resource to a domain entity.
           {:ok, resource} = get_resource(order.steward_resource_id)
 
-          process_resource(resource, fn resource ->
+          process_resource(resource, fn loaded_order ->
             # You could have more centralized boilerplate here, like transaction & locking.
 
             # Reconcile after the function exits.
-            {true, fun.(resource.object)}
+            {true, fun.(loaded_order)}
           end)
         end
       end
@@ -336,10 +342,10 @@ defmodule Steward.Controller do
     schedule_on_error? = Keyword.get(opts, :schedule_on_error, true)
 
     case controller.load(resource) do
-      {:ok, resource} ->
+      {:ok, loaded_object} ->
         {schedule?, result} =
           try do
-            {_schedule?, _result} = fun.(resource)
+            {_schedule?, _result} = fun.(loaded_object)
           catch
             kind, reason ->
               if schedule_on_error?, do: schedule_resource!(controller, resource)

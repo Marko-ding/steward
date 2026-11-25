@@ -134,9 +134,9 @@ defmodule Steward.Reconciliation do
       []
     else
       case controller.load(resource) do
-        {:ok, loaded_resource} ->
+        {:ok, loaded_object} ->
           controller.workers()
-          |> Enum.reduce(Spec.new(), & &1.spec(&2, loaded_resource, existing_jobs))
+          |> Enum.reduce(Spec.new(), & &1.spec(&2, loaded_object, existing_jobs))
           |> Map.fetch!(:jobs)
           |> Enum.map(&Plan.desired(resource, &1))
 
