@@ -13,8 +13,8 @@ defmodule Steward.Controller do
 
   `use Steward.Controller` also defines shorthands for managing the controller's resources,
   e.g. `MyController.schedule_resource!(id)` for `schedule_resource!(MyController, id)`. See
-  `create_resource/3`, `get_resource/2`, `list_resources_by_meta/2`, `schedule_resource!/2`,
-  `process_resource/4`, `cancel_resource!/2` and `resume_resource!/2`.
+  `create_resource/3`, `upsert_resource/3`, `get_resource/2`, `list_resources_by_meta/2`,
+  `schedule_resource!/2`, `process_resource/4`, `cancel_resource!/2` and `resume_resource!/2`.
 
   ## Options
 
@@ -171,6 +171,56 @@ defmodule Steward.Controller do
       controller: controller_to_string!(controller)
     })
     |> repo.insert(opts)
+  end
+
+  @doc """
+  Creates a resource, or schedules the existing resource with the same id, for reconciliation.
+
+  Useful with a caller-supplied `:id` (see `create_resource/3`), e.g. to make sure a domain
+  entity is reconciled without knowing whether its resource was created yet. Without an `:id`,
+  this is equivalent to `create_resource/3`.
+
+  An existing resource is scheduled as with `schedule_resource!/2`, keeping its `:meta`: the
+  given `:meta` only applies to newly created resources.
+
+  Returns an error changeset with an error on `:cancelled_at` if the existing resource is
+  cancelled. See `resume_resource!/2`.
+
+  ## Example
+
+      upsert_resource(MyController, %{id: order.id, meta: %{order_id: order.id}})
+
+  Last argument is passed as options to `c:Ecto.Repo.insert/2`.
+  """
+  @doc since: "0.2.0"
+  @spec upsert_resource(module) :: {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
+  @spec upsert_resource(module, map) ::
+          {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
+  @spec upsert_resource(module, map, keyword) ::
+          {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
+  def upsert_resource(controller, user_attrs \\ %{}, opts \\ []) do
+    now = DateTime.utc_now()
+
+    # Cancelled resources are skipped by the update, which Ecto reports as stale.
+    on_conflict =
+      controller
+      |> Query.resources()
+      |> where([r], is_nil(r.cancelled_at))
+      |> Query.schedule(now)
+      |> update(set: [updated_at: type(^now, :utc_datetime_usec)])
+
+    create_resource(
+      controller,
+      user_attrs,
+      Keyword.merge(opts,
+        on_conflict: on_conflict,
+        conflict_target: [:controller, :id],
+        returning: true,
+        allow_stale: false,
+        stale_error_field: :cancelled_at,
+        stale_error_message: "is cancelled"
+      )
+    )
   end
 
   @doc """

@@ -19,6 +19,14 @@ defmodule Steward.Controller.Shorthands do
         Controller.create_resource(__MODULE__, attrs, opts)
       end
 
+      @doc "See `Steward.Controller.upsert_resource/3`."
+      @spec upsert_resource() :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
+      @spec upsert_resource(map) :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
+      @spec upsert_resource(map, keyword) :: {:ok, Resource.t()} | {:error, Ecto.Changeset.t()}
+      def upsert_resource(attrs \\ %{}, opts \\ []) do
+        Controller.upsert_resource(__MODULE__, attrs, opts)
+      end
+
       @doc "See `Steward.Controller.get_resource/2`."
       @spec get_resource(Resource.id()) :: {:ok, Resource.t()} | {:error, :not_found}
       def get_resource(resource_id) do

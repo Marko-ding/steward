@@ -78,6 +78,70 @@ defmodule Steward.ControllerTest do
     end
   end
 
+  describe "upsert_resource/3" do
+    test "creates a resource for a new id" do
+      id = Ecto.UUID.generate()
+
+      assert {:ok, resource} =
+               Controller.upsert_resource(MockController, %{id: id, meta: %{"key" => "val"}})
+
+      assert resource.id == id
+      assert resource.meta == %{"key" => "val"}
+      assert resource.reconciliation_state == :scheduled
+      assert Map.delete(resource, :__meta__) == Map.delete(reload(resource), :__meta__)
+    end
+
+    test "schedules an existing resource and keeps its meta" do
+      resource = insert_idle_resource(%{meta: %{"key" => "old"}})
+
+      assert {:ok, upserted} =
+               Controller.upsert_resource(MockController, %{
+                 id: resource.id,
+                 meta: %{"key" => "new"}
+               })
+
+      assert upserted.reconciliation_state == :scheduled
+      assert upserted.reconciliation_due_at
+      assert upserted.meta == %{"key" => "old"}
+      assert upserted.inserted_at == resource.inserted_at
+      assert DateTime.compare(upserted.updated_at, resource.updated_at) == :gt
+      assert Map.delete(upserted, :__meta__) == Map.delete(reload(resource), :__meta__)
+    end
+
+    test "sets due_at but keeps the state of an existing resource in reconciliation" do
+      set_at = from_now(-10)
+
+      resource =
+        insert_resource(%{
+          reconciliation_state: :reconciling,
+          reconciliation_state_set_at: set_at,
+          reconciliation_due_at: nil
+        })
+
+      assert {:ok, upserted} = Controller.upsert_resource(MockController, %{id: resource.id})
+
+      assert upserted.reconciliation_state == :reconciling
+      assert upserted.reconciliation_state_set_at == set_at
+      assert upserted.reconciliation_due_at
+    end
+
+    test "returns an error changeset for a cancelled resource and leaves it alone" do
+      resource = insert_idle_resource(%{cancelled_at: from_now(-10)})
+
+      assert {:error, changeset} = Controller.upsert_resource(MockController, %{id: resource.id})
+      assert {"is cancelled", _} = changeset.errors[:cancelled_at]
+
+      assert reload(resource).reconciliation_state == :idle
+    end
+
+    test "is defined as a shorthand" do
+      id = Ecto.UUID.generate()
+
+      assert {:ok, %{id: ^id}} = Steward.TestController.upsert_resource(%{id: id})
+      assert {:ok, %{id: ^id}} = Steward.TestController.upsert_resource(%{id: id})
+    end
+  end
+
   describe "process_resource/4" do
     test "calls fun with the loaded resource and returns its result" do
       resource = insert_idle_resource()
