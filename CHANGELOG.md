@@ -7,6 +7,9 @@
 
 ### Changed
 
+- `c:Steward.Controller.load/1` returns `{:ok, object}` with arbitrary domain data instead
+  of a resource with its `:object` field filled.
+
 - `Steward.Plugin` polls every 30 seconds by default: `:reconcile_poll_interval` was `5_000`,
   `:lifeline_poll_interval` and `:prune_poll_interval` were `60_000`.
 

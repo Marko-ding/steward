@@ -18,6 +18,8 @@ defmodule Steward.Worker do
   @doc """
   Called as part of the resource reconciliation to calculate the desired execution plan.
 
+  Receives the object loaded by `c:Steward.Controller.load/1` and the resource's existing jobs.
+
   Callback implementation must be pure and deterministic. Repeated runs of the reconciliation
   should result in the same job schedule, hence the implementation must schedule the same set
   of jobs in every run as long as application state hasn't changed.
@@ -68,13 +70,14 @@ defmodule Steward.Worker do
   i.e. until the spec asks for something new.
   """
   @doc since: "0.1.0"
-  @callback spec(Steward.Spec.t(), Steward.Resource.t(), [Oban.Job.t()]) :: Steward.Spec.t()
+  @callback spec(Steward.Spec.t(), Steward.Controller.object(), [Oban.Job.t()]) ::
+              Steward.Spec.t()
 
   @doc """
   Callback replacing `c:Oban.Worker.perform/1` in your workers.
 
   `Steward.Worker` implements the default `c:Oban.Worker.perform/1`. It loads the resource's
-  object by calling `c:Steward.Controller.load/1` on its controller and passes it as the second
+  object by calling `c:Steward.Controller.load/1` on its controller and passes the loaded object as the second
   argument to `c:Steward.Worker.perform/2`. Afterwards, it schedules the resource for
   reconciliation if the job is about to enter a terminal state, i.e. it succeeded, was
   discarded or cancelled, or failed its last attempt.
@@ -93,7 +96,7 @@ defmodule Steward.Worker do
   `Steward.Controller.schedule_resource!/2` when you cancel jobs yourself.
   """
   @doc since: "0.1.0"
-  @callback perform(Oban.Job.t(), Steward.Resource.t()) :: Oban.Worker.result()
+  @callback perform(Oban.Job.t(), Steward.Controller.object()) :: Oban.Worker.result()
 
   defmacro __using__(opts) do
     validate_no_unique!(opts)

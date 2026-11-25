@@ -38,9 +38,6 @@ defmodule Steward.Resource do
     field(:reconciliation_state_set_at, :utc_datetime_usec)
     field(:reconciliation_error, :string)
 
-    # Domain data from `c:Steward.Controller.load/1`.
-    field(:object, :any, virtual: true)
-
     timestamps(type: :utc_datetime_usec)
   end
 

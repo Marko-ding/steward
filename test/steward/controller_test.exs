@@ -143,14 +143,13 @@ defmodule Steward.ControllerTest do
   end
 
   describe "process_resource/4" do
-    test "calls fun with the loaded resource and returns its result" do
+    test "calls fun with the loaded object and returns its result" do
       resource = insert_idle_resource()
-      expect(MockController, :load, fn resource -> {:ok, %{resource | object: :loaded}} end)
+      resource_id = resource.id
+      expect(MockController, :load, fn %{id: ^resource_id} -> {:ok, :loaded} end)
 
       assert {:ok, :some_value} =
-               Controller.process_resource(MockController, resource, fn loaded ->
-                 assert loaded.id == resource.id
-                 assert loaded.object == :loaded
+               Controller.process_resource(MockController, resource, fn :loaded ->
                  {false, {:ok, :some_value}}
                end)
 
