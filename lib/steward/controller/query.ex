@@ -10,7 +10,9 @@ defmodule Steward.Controller.Query do
   import Steward.Utils, only: [controller_to_string!: 1]
   alias Steward.Resource
 
-  # All resources of `controller`.
+  # ---------------------------------------------------------------------------------------
+  # Base queries
+
   @doc false
   @spec resources(module) :: Ecto.Query.t()
   def resources(controller) do
@@ -20,7 +22,6 @@ defmodule Steward.Controller.Query do
     |> put_query_prefix(prefix)
   end
 
-  # The resource of `controller` with the given id.
   @doc false
   @spec resource(module, Resource.t() | Resource.id()) :: Ecto.Query.t()
   def resource(controller, resource_or_id) do
@@ -34,6 +35,30 @@ defmodule Steward.Controller.Query do
   def resources_by_meta(controller, meta) when is_map(meta) do
     where(resources(controller), [r], fragment("? @> ?", r.meta, type(^meta, :map)))
   end
+
+  # ---------------------------------------------------------------------------------------
+  # Modifier queries
+
+  @doc false
+  @spec where_resource(Ecto.Query.t(), module, Resource.t() | Resource.id()) :: Ecto.Query.t()
+  def where_resource(query, controller, resource_or_id) do
+    where(
+      query,
+      [r],
+      r.controller == ^controller_to_string!(controller) and r.id == ^resource_id(resource_or_id)
+    )
+  end
+
+  @doc false
+  @spec where_due(Ecto.Query.t()) :: Ecto.Query.t()
+  def where_due(query) do
+    query
+    |> where([r], r.reconciliation_state == :scheduled)
+    |> where([r], r.reconciliation_due_at <= ^DateTime.utc_now())
+  end
+
+  # ---------------------------------------------------------------------------------------
+  # Update queries
 
   # Update that schedules the queried resources for reconciliation at `due_at`, defaulting to
   # `now`. Resources that are reconciling stay so (and keep their state timestamp): the due

@@ -63,6 +63,13 @@ defmodule Steward.Controller.Shorthands do
       def resume_resource!(resource_or_id) do
         Controller.resume_resource!(__MODULE__, resource_or_id)
       end
+
+      @doc false
+      @spec reconcile_resource(Resource.t() | Resource.id()) :: {:ok, non_neg_integer}
+      @spec reconcile_resource(Resource.t() | Resource.id(), keyword) :: {:ok, non_neg_integer}
+      def reconcile_resource(resource_or_id, opts \\ []) do
+        Controller.reconcile_resource(__MODULE__, resource_or_id, opts)
+      end
     end
   end
 end

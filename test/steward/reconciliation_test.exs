@@ -504,4 +504,25 @@ defmodule Steward.ReconciliationTest do
       refute_received {[:steward, :reconciliation, :stop], ^ref, _, _}
     end
   end
+
+  describe "reconcile_one/4" do
+    test "reconciles only the given resource, even when idle" do
+      resource = insert_resource()
+      {:ok, 1} = reconcile()
+      assert reload(resource).reconciliation_state == :idle
+
+      other = insert_resource()
+      stub_spec(&Spec.schedule(&1, MockWorker, %{}))
+
+      # Through `Steward.Controller`, to cover its `:oban` option as well.
+      assert {:ok, 1} =
+               Steward.Controller.reconcile_resource(MockController, resource.id, oban: TestOban)
+
+      assert reload(resource).reconciliation_state == :idle
+      assert [_job] = resource_jobs(resource)
+
+      assert reload(other).reconciliation_state == :scheduled
+      assert [] = resource_jobs(other)
+    end
+  end
 end
