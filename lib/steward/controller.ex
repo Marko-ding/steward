@@ -14,7 +14,8 @@ defmodule Steward.Controller do
   `use Steward.Controller` also defines shorthands for managing the controller's resources,
   e.g. `MyController.schedule_resource!(id)` for `schedule_resource!(MyController, id)`. See
   `create_resource/3`, `upsert_resource/3`, `get_resource/2`, `list_resources_by_meta/2`,
-  `schedule_resource!/2`, `process_resource/4`, `cancel_resource!/2` and `resume_resource!/2`.
+  `schedule_resource!/2`, `schedule_resources/2`, `process_resource/4`, `cancel_resource!/2` and
+  `resume_resource!/2`.
 
   ## Options
 
@@ -376,6 +377,28 @@ defmodule Steward.Controller do
   end
 
   @doc """
+  Schedules the resources with the given ids for asynchronous reconciliation.
+
+  Like `schedule_resource!/2`, but for many resources in a single query. Returns the number of
+  scheduled resources. Ids of resources that don't exist are ignored.
+  """
+  @doc since: "0.2.0"
+  @spec schedule_resources(module, [Resource.id()]) :: {:ok, non_neg_integer}
+  def schedule_resources(_controller, []), do: {:ok, 0}
+
+  def schedule_resources(controller, resource_ids) when is_list(resource_ids) do
+    now = DateTime.utc_now()
+
+    {count, _} =
+      controller
+      |> Query.resources(resource_ids)
+      |> Query.schedule(now)
+      |> update_all(controller, now)
+
+    {:ok, count}
+  end
+
+  @doc """
   Cancels the resource, ending its lifecycle.
 
   The resource is reconciled one last time, which deletes its pending jobs. Executing jobs run
@@ -417,10 +440,10 @@ defmodule Steward.Controller do
     |> Query.resume()
     |> update_all(controller, now)
     |> case do
-      [resource] ->
+      {_count, [resource]} ->
         resource
 
-      [] ->
+      {_count, []} ->
         # Tell a pruned resource apart from a missing one.
         if controller |> Query.resource(resource_or_id) |> repo(controller).exists?() do
           raise ResourceAlreadyPrunedError,
@@ -448,20 +471,17 @@ defmodule Steward.Controller do
   # updated resource.
   defp update_one!(query, controller, resource_or_id, now) do
     case update_all(query, controller, now) do
-      [resource] -> resource
-      [] -> raise_not_found!(controller, resource_or_id)
+      {_count, [resource]} -> resource
+      {_count, []} -> raise_not_found!(controller, resource_or_id)
     end
   end
 
-  # Runs an update query, touching `updated_at` and returning the updated resources.
+  # Runs an update query, touching `updated_at`. Returns the count and the updated resources.
   defp update_all(query, controller, now) do
-    {_count, resources} =
-      query
-      |> select([r], r)
-      |> Query.touch(now)
-      |> repo(controller).update_all([])
-
-    resources
+    query
+    |> select([r], r)
+    |> Query.touch(now)
+    |> repo(controller).update_all([])
   end
 
   defp raise_not_found!(controller, resource_or_id) do
