@@ -45,6 +45,12 @@ defmodule Steward.Controller.Shorthands do
         Controller.schedule_resource!(__MODULE__, resource_or_id)
       end
 
+      @doc "See `Steward.Controller.schedule_resources/2`."
+      @spec schedule_resources([Resource.id()]) :: {:ok, non_neg_integer}
+      def schedule_resources(resource_ids) do
+        Controller.schedule_resources(__MODULE__, resource_ids)
+      end
+
       @doc "See `Steward.Controller.process_resource/4`."
       @spec process_resource(Resource.t(), Controller.processor()) :: :cancelled | term
       @spec process_resource(Resource.t(), Controller.processor(), keyword) :: :cancelled | term

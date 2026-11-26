@@ -325,6 +325,42 @@ defmodule Steward.ControllerTest do
     end
   end
 
+  describe "schedule_resources/2" do
+    test "schedules the given resources and returns their count" do
+      resource_a = insert_idle_resource()
+      resource_b = insert_idle_resource()
+      other = insert_idle_resource()
+
+      assert {:ok, 2} =
+               Controller.schedule_resources(MockController, [
+                 resource_a.id,
+                 resource_b.id,
+                 resource_a.id
+               ])
+
+      for resource <- [resource_a, resource_b] do
+        reloaded = reload(resource)
+        assert reloaded.reconciliation_state == :scheduled
+        assert reloaded.reconciliation_due_at
+      end
+
+      assert reload(other).reconciliation_state == :idle
+    end
+
+    test "returns 0 for no ids" do
+      assert Controller.schedule_resources(MockController, []) == {:ok, 0}
+    end
+
+    test "ignores unknown ids" do
+      resource = insert_idle_resource()
+
+      assert {:ok, 1} =
+               Controller.schedule_resources(MockController, [resource.id, Ecto.UUID.generate()])
+
+      assert reload(resource).reconciliation_state == :scheduled
+    end
+  end
+
   describe "cancel_resource!/2" do
     test "cancels and schedules the resource" do
       resource = insert_idle_resource()

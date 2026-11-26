@@ -5,6 +5,8 @@
 - `Steward.Controller.upsert_resource/3` creates a resource or schedules the existing one with
   the same id.
 
+- `Steward.Controller.schedule_resources/2` schedules many resources by id in a single query.
+
 ### Changed
 
 - `c:Steward.Controller.load/1` returns `{:ok, object}` with arbitrary domain data instead

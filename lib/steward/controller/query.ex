@@ -23,6 +23,12 @@ defmodule Steward.Controller.Query do
   end
 
   @doc false
+  @spec resources(module, [Resource.id()]) :: Ecto.Query.t()
+  def resources(controller, resource_ids) when is_list(resource_ids) do
+    where(resources(controller), [r], r.id in ^resource_ids)
+  end
+
+  @doc false
   @spec resource(module, Resource.t() | Resource.id()) :: Ecto.Query.t()
   def resource(controller, resource_or_id) do
     where(resources(controller), [r], r.id == ^resource_id(resource_or_id))
