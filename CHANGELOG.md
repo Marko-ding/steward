@@ -7,6 +7,9 @@
 
 - `Steward.Controller.schedule_resources/2` schedules many resources by id in a single query.
 
+- `Steward.Controller.create_resource/3` and `Steward.Controller.upsert_resource/3` accept
+  `schedule: false` to create an idle resource, or leave an existing one unscheduled.
+
 ### Changed
 
 - `c:Steward.Controller.load/1` returns `{:ok, object}` with arbitrary domain data instead

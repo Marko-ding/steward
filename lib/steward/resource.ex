@@ -42,18 +42,22 @@ defmodule Steward.Resource do
   end
 
   @doc false
-  @spec create_changeset(t, map, map) :: Ecto.Changeset.t()
-  def create_changeset(%__MODULE__{} = resource, user_attrs, system_attrs) do
+  @spec create_changeset(t, map, map, keyword) :: Ecto.Changeset.t()
+  def create_changeset(%__MODULE__{} = resource, user_attrs, system_attrs, opts) do
     now = DateTime.utc_now()
+
+    reconciliation_attrs =
+      if Keyword.get(opts, :schedule, true) do
+        %{reconciliation_due_at: now, reconciliation_state: :scheduled}
+      else
+        %{reconciliation_due_at: nil, reconciliation_state: :idle}
+      end
 
     resource
     |> cast(user_attrs, [:id, :meta])
     |> change(system_attrs)
-    |> change(%{
-      reconciliation_due_at: now,
-      reconciliation_state: :scheduled,
-      reconciliation_state_set_at: now
-    })
+    |> change(reconciliation_attrs)
+    |> change(reconciliation_state_set_at: now)
     |> unique_constraint(:id, name: "#{Ecto.get_meta(resource, :source)}_pkey")
   end
 

@@ -76,6 +76,22 @@ defmodule Steward.ControllerTest do
       assert {:error, changeset} = Controller.create_resource(MockController, %{id: resource.id})
       assert {"has already been taken", _} = changeset.errors[:id]
     end
+
+    test "schedules the resource by default" do
+      assert {:ok, resource} = Controller.create_resource(MockController)
+
+      assert resource.reconciliation_state == :scheduled
+      assert resource.reconciliation_due_at
+    end
+
+    test "creates an idle resource with schedule: false" do
+      assert {:ok, resource} = Controller.create_resource(MockController, %{}, schedule: false)
+
+      assert resource.reconciliation_state == :idle
+      assert resource.reconciliation_due_at == nil
+      assert resource.reconciliation_state_set_at
+      assert Map.delete(resource, :__meta__) == Map.delete(reload(resource), :__meta__)
+    end
   end
 
   describe "upsert_resource/3" do
@@ -123,6 +139,36 @@ defmodule Steward.ControllerTest do
       assert upserted.reconciliation_state == :reconciling
       assert upserted.reconciliation_state_set_at == set_at
       assert upserted.reconciliation_due_at
+    end
+
+    test "creates an idle resource with schedule: false" do
+      assert {:ok, resource} =
+               Controller.upsert_resource(MockController, %{id: Ecto.UUID.generate()},
+                 schedule: false
+               )
+
+      assert resource.reconciliation_state == :idle
+      assert resource.reconciliation_due_at == nil
+    end
+
+    test "leaves an existing resource unscheduled with schedule: false" do
+      resource = insert_idle_resource()
+
+      assert {:ok, upserted} =
+               Controller.upsert_resource(MockController, %{id: resource.id}, schedule: false)
+
+      assert upserted.reconciliation_state == :idle
+      assert upserted.reconciliation_due_at == nil
+      assert Map.delete(upserted, :__meta__) == Map.delete(reload(resource), :__meta__)
+    end
+
+    test "returns an error changeset for a cancelled resource with schedule: false" do
+      resource = insert_idle_resource(%{cancelled_at: from_now(-10)})
+
+      assert {:error, changeset} =
+               Controller.upsert_resource(MockController, %{id: resource.id}, schedule: false)
+
+      assert {"is cancelled", _} = changeset.errors[:cancelled_at]
     end
 
     test "returns an error changeset for a cancelled resource and leaves it alone" do

@@ -142,7 +142,7 @@ defmodule Steward.Controller do
   end
 
   @doc """
-  Creates a new resource and schedules it for immediate reconciliation.
+  Creates a new resource and, by default, schedules it for immediate reconciliation.
 
   ## Associating a resource with a domain entity
 
@@ -161,7 +161,13 @@ defmodule Steward.Controller do
 
       create_resource(MyController, %{meta: %{order_id: 123}})
 
-  Last argument is passed as options to `c:Ecto.Repo.insert/2`.
+  ## Options
+
+    * `:schedule` - whether to schedule the new resource for immediate reconciliation. When
+      `false`, the resource is created idle and only reconciled once scheduled, e.g. with
+      `schedule_resource!/2`. Defaults to `true`.
+
+  Other options are passed to `c:Ecto.Repo.insert/2`.
   """
   @doc since: "0.1.0"
   @spec create_resource(module) :: {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
@@ -174,10 +180,12 @@ defmodule Steward.Controller do
 
     %Steward.Resource{}
     |> Ecto.put_meta(prefix: prefix, source: table)
-    |> Steward.Resource.create_changeset(user_attrs, %{
-      controller: controller_to_string!(controller)
-    })
-    |> repo.insert(opts)
+    |> Steward.Resource.create_changeset(
+      user_attrs,
+      %{controller: controller_to_string!(controller)},
+      opts
+    )
+    |> repo.insert(Keyword.delete(opts, :schedule))
   end
 
   @doc """
@@ -188,7 +196,8 @@ defmodule Steward.Controller do
   this is equivalent to `create_resource/3`.
 
   An existing resource is scheduled as with `schedule_resource!/2`, keeping its `:meta`: the
-  given `:meta` only applies to newly created resources.
+  given `:meta` only applies to newly created resources. With `schedule: false`, neither a new
+  nor an existing resource is scheduled.
 
   Returns an error changeset with an error on `:cancelled_at` if the existing resource is
   cancelled. See `resume_resource!/2`.
@@ -197,7 +206,9 @@ defmodule Steward.Controller do
 
       upsert_resource(MyController, %{id: order.id, meta: %{order_id: order.id}})
 
-  Last argument is passed as options to `c:Ecto.Repo.insert/2`.
+  ## Options
+
+  Accepts the options of `create_resource/3`.
   """
   @doc since: "0.2.0"
   @spec upsert_resource(module) :: {:ok, Steward.Resource.t()} | {:error, Ecto.Changeset.t()}
@@ -208,13 +219,24 @@ defmodule Steward.Controller do
   def upsert_resource(controller, user_attrs \\ %{}, opts \\ []) do
     now = DateTime.utc_now()
 
-    # Cancelled resources are skipped by the update, which Ecto reports as stale.
+    # NOTE: is_nil(r.cancelled_at) to avoid rescheduling cancelled resources.
+    #       When the insert conflicts with an existing resource, Postgres runs this update instead
+    #       (`ON CONFLICT ... DO UPDATE ... WHERE`). Its `where` skips cancelled resources: the
+    #       statement then affects no row, which Ecto treats as a stale entry. With
+    #       `allow_stale: false` and `stale_error_field` below, that turns into an error changeset
+    #       rather than an `Ecto.StaleEntryError`. The update always touches `updated_at`, so it
+    #       has something to set even with `schedule: false`.
+
     on_conflict =
       controller
       |> Query.resources()
       |> where([r], is_nil(r.cancelled_at))
-      |> Query.schedule(now)
-      |> update(set: [updated_at: type(^now, :utc_datetime_usec)])
+      |> Query.touch(now)
+
+    on_conflict =
+      if Keyword.get(opts, :schedule, true),
+        do: Query.schedule(on_conflict, now),
+        else: on_conflict
 
     create_resource(
       controller,
