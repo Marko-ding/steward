@@ -432,6 +432,18 @@ defmodule Steward.Controller do
     end
   end
 
+  # Reconciles the resource in the calling process, see `Steward.Reconciliation.reconcile_one/4`.
+  # Undocumented while the interface settles.
+  @doc false
+  @spec reconcile_resource(module, Resource.t() | Resource.id()) :: {:ok, non_neg_integer}
+  @spec reconcile_resource(module, Resource.t() | Resource.id(), keyword) ::
+          {:ok, non_neg_integer}
+  def reconcile_resource(controller, resource_or_id, opts \\ []) do
+    {oban, opts} = Keyword.pop(opts, :oban, Oban)
+
+    Steward.Reconciliation.reconcile_one(oban, controller, resource_or_id, opts)
+  end
+
   # Sets `cancelled_at` without scheduling the resource. Only for use during reconciliation.
   @doc false
   @spec mark_resource_cancelled!(module, Resource.t()) :: Resource.t()

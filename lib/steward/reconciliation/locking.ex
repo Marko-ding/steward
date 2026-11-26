@@ -7,10 +7,12 @@ defmodule Steward.Reconciliation.Locking do
   import Steward.Utils, only: [controller_from_string!: 1]
   alias Steward.Resource
 
-  # Claims up to `:reconcile_batch_size` due resources, moving them to `:reconciling`.
-  # Resources locked by a concurrent claim are skipped.
-  @spec claim_batch(module, keyword) :: {non_neg_integer, [Resource.t()]}
-  def claim_batch(steward, opts) do
+  # Claims up to `:reconcile_batch_size` resources matching `scope` (e.g. those that are due),
+  # moving them to `:reconciling`. Resources already reconciling or locked by a concurrent claim
+  # are skipped.
+  @spec claim_batch(module, (Ecto.Query.t() -> Ecto.Query.t()), keyword) ::
+          {non_neg_integer, [Resource.t()]}
+  def claim_batch(steward, scope, opts) do
     %{repo: repo, table: table, prefix: prefix} = steward.__steward_config__()
 
     batch_size = Keyword.fetch!(opts, :reconcile_batch_size)
@@ -18,8 +20,8 @@ defmodule Steward.Reconciliation.Locking do
 
     scheduled_resources =
       {table, Resource}
-      |> where([r], r.reconciliation_state == :scheduled)
-      |> where([r], r.reconciliation_due_at <= ^now)
+      |> scope.()
+      |> where([r], r.reconciliation_state != :reconciling)
       |> limit(^batch_size)
       |> lock("FOR UPDATE SKIP LOCKED")
       |> select([r], %{controller: r.controller, id: r.id})

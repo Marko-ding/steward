@@ -13,37 +13,41 @@ defmodule Steward.Reconciliation do
   import Steward.Utils, only: [controller_from_string!: 1]
 
   alias Steward.Controller
+  alias Steward.Controller.Query
   alias Steward.Reconciliation.Locking
   alias Steward.Reconciliation.Plan
   alias Steward.Resource
   alias Steward.Spec
   alias Steward.Telemetry
 
-  # `:raise_errors` reraises errors instead of backing off resources, see `Steward.Testing`.
-  @defaults [
-    reconcile_batch_size: 10,
-    reconciliation_error_backoff: :timer.hours(1),
-    raise_errors: false
-  ]
+  @default_reconciliation_error_backoff :timer.hours(1)
 
   # Returns the number of reconciled resources, including failed ones.
   @spec reconcile_all_due(module) :: {:ok, non_neg_integer} | :error
   @spec reconcile_all_due(module, module) :: {:ok, non_neg_integer} | :error
   @spec reconcile_all_due(module, module, keyword) :: {:ok, non_neg_integer} | :error
   def reconcile_all_due(oban \\ Oban, steward, opts \\ []) do
-    opts = Keyword.merge(@defaults, opts)
-
     validate_schema!(opts,
       reconcile_batch_size: :pos_integer,
       reconciliation_error_backoff: :non_neg_integer,
       raise_errors: :boolean
     )
 
-    meta = %{oban: oban, steward: steward}
+    opts =
+      Keyword.merge(
+        [
+          reconcile_batch_size: 10,
+          reconciliation_error_backoff: @default_reconciliation_error_backoff,
+          raise_errors: false
+        ],
+        opts
+      )
 
     try do
+      meta = %{oban: oban, steward: steward}
+
       Telemetry.span([:reconciliation], meta, fn ->
-        measurements = reconcile_due_batches(oban, steward, opts)
+        measurements = reconcile_due_in_batches_until_done(oban, steward, opts)
 
         {{:ok, measurements.resource_count}, measurements, meta}
       end)
@@ -57,14 +61,60 @@ defmodule Steward.Reconciliation do
     end
   end
 
-  defp reconcile_due_batches(oban, steward, opts, acc \\ %{batch_count: 0, resource_count: 0}) do
-    case Locking.claim_batch(steward, opts) do
-      {0, []} ->
+  defp reconcile_due_in_batches_until_done(
+         oban,
+         steward,
+         opts,
+         acc \\ %{batch_count: 0, resource_count: 0}
+       ) do
+    case reconcile_batch(oban, steward, &Query.where_due/1, opts) do
+      0 ->
         acc
+
+      count ->
+        acc = %{
+          batch_count: acc.batch_count + 1,
+          resource_count: acc.resource_count + count
+        }
+
+        reconcile_due_in_batches_until_done(oban, steward, opts, acc)
+    end
+  end
+
+  # Reconciles a single resource in the calling process, for debugging. The resource is claimed
+  # and released like in `reconcile_all_due/3`, but it's reconciled even when it's idle. Errors
+  # are raised (after backing off the resource).
+  @spec reconcile_one(module, Resource.t() | Resource.id()) :: {:ok, non_neg_integer}
+  @spec reconcile_one(Oban.name(), module, Resource.t() | Resource.id()) ::
+          {:ok, non_neg_integer}
+  @spec reconcile_one(Oban.name(), module, Resource.t() | Resource.id(), keyword) ::
+          {:ok, non_neg_integer}
+  def reconcile_one(oban \\ Oban, controller, resource_or_id, opts \\ []) do
+    validate_schema!(opts, reconciliation_error_backoff: :non_neg_integer)
+
+    opts =
+      Keyword.merge(
+        [
+          reconcile_batch_size: 1,
+          reconciliation_error_backoff: @default_reconciliation_error_backoff,
+          raise_errors: true
+        ],
+        opts
+      )
+
+    scope = &Query.where_resource(&1, controller, resource_or_id)
+
+    {:ok, reconcile_batch(oban, controller.__steward__(), scope, opts)}
+  end
+
+  defp reconcile_batch(oban, steward, scope, opts) do
+    case Locking.claim_batch(steward, scope, opts) do
+      {0, []} ->
+        0
 
       {count, batch} ->
         try do
-          reconcile_batch(oban, steward, batch, opts)
+          do_reconcile_batch(oban, steward, batch, opts)
         rescue
           # Errors of single resources are handled in `reconcile_resource/5`. Anything raised
           # here affects the whole batch (e.g. an unknown controller or a database error), so
@@ -76,16 +126,11 @@ defmodule Steward.Reconciliation do
           _ -> Locking.release_batch(steward, batch)
         end
 
-        acc = %{
-          batch_count: acc.batch_count + 1,
-          resource_count: acc.resource_count + count
-        }
-
-        reconcile_due_batches(oban, steward, opts, acc)
+        count
     end
   end
 
-  defp reconcile_batch(oban, steward, batch, opts) do
+  defp do_reconcile_batch(oban, steward, batch, opts) do
     existing_jobs = all_resource_jobs(oban, batch)
 
     {desired_jobs, existing_jobs} =
