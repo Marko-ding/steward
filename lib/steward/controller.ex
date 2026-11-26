@@ -444,44 +444,6 @@ defmodule Steward.Controller do
     Steward.Reconciliation.reconcile_one(oban, controller, resource_or_id, opts)
   end
 
-  # Sets `cancelled_at` without scheduling the resource. Only for use during reconciliation.
-  @doc false
-  @spec mark_resource_cancelled!(module, Resource.t()) :: Resource.t()
-  def mark_resource_cancelled!(controller, %Resource{} = resource) do
-    now = DateTime.utc_now()
-
-    controller
-    |> Query.resource(resource)
-    |> Query.cancel(now)
-    |> update_one!(controller, resource, now)
-  end
-
-  # Schedules the resource for reconciliation `backoff` milliseconds after a failed
-  # reconciliation, storing the error. Only for use during reconciliation.
-  @doc false
-  @spec reschedule_resource_after_reconciliation_error!(
-          module,
-          Resource.t(),
-          Exception.t(),
-          Exception.stacktrace(),
-          non_neg_integer
-        ) :: Resource.t()
-  def reschedule_resource_after_reconciliation_error!(
-        controller,
-        %Resource{} = resource,
-        exception,
-        stacktrace,
-        backoff
-      ) do
-    now = DateTime.utc_now()
-
-    controller
-    |> Query.resource(resource)
-    |> Query.schedule(now, DateTime.add(now, backoff, :millisecond))
-    |> update(set: [reconciliation_error: ^Exception.format(:error, exception, stacktrace)])
-    |> update_one!(controller, resource, now)
-  end
-
   # Runs an update query on a single resource, touching `updated_at` and returning the
   # updated resource.
   defp update_one!(query, controller, resource_or_id, now) do
@@ -496,7 +458,7 @@ defmodule Steward.Controller do
     {_count, resources} =
       query
       |> select([r], r)
-      |> update(set: [updated_at: type(^now, :utc_datetime_usec)])
+      |> Query.touch(now)
       |> repo(controller).update_all([])
 
     resources
