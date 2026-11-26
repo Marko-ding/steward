@@ -96,6 +96,23 @@ defmodule Steward.Controller.Query do
     )
   end
 
+  # Update that stores the formatted error of a failed reconciliation on the queried resources.
+  @doc false
+  @spec record_reconciliation_error(Ecto.Queryable.t(), Exception.t(), Exception.stacktrace()) ::
+          Ecto.Query.t()
+  def record_reconciliation_error(query, exception, stacktrace) do
+    update(query,
+      set: [reconciliation_error: ^Exception.format(:error, exception, stacktrace)]
+    )
+  end
+
+  # Update that sets `updated_at` of the queried resources to `now`.
+  @doc false
+  @spec touch(Ecto.Queryable.t(), DateTime.t()) :: Ecto.Query.t()
+  def touch(query, now) do
+    update(query, set: [updated_at: type(^now, :utc_datetime_usec)])
+  end
+
   # Update that clears the cancellation of the queried resources.
   @doc false
   @spec resume(Ecto.Queryable.t()) :: Ecto.Query.t()

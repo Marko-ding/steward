@@ -12,7 +12,6 @@ defmodule Steward.Reconciliation do
 
   import Steward.Utils, only: [controller_from_string!: 1]
 
-  alias Steward.Controller
   alias Steward.Controller.Query
   alias Steward.Reconciliation.Locking
   alias Steward.Reconciliation.Plan
@@ -159,13 +158,8 @@ defmodule Steward.Reconciliation do
     end)
   rescue
     e ->
-      Controller.reschedule_resource_after_reconciliation_error!(
-        controller,
-        resource,
-        e,
-        __STACKTRACE__,
-        Keyword.fetch!(opts, :reconciliation_error_backoff)
-      )
+      backoff = Keyword.fetch!(opts, :reconciliation_error_backoff)
+      reschedule_resource_after_error(controller, resource, e, __STACKTRACE__, backoff)
 
       if Keyword.fetch!(opts, :raise_errors) do
         reraise(e, __STACKTRACE__)
@@ -188,7 +182,7 @@ defmodule Steward.Reconciliation do
         :cancel ->
           # Directly mark as cancelled (without schedule) as jobs will be cancelled within
           # the current run.
-          Controller.mark_resource_cancelled!(controller, resource)
+          mark_resource_cancelled(controller, resource)
           []
       end
     end
@@ -238,4 +232,29 @@ defmodule Steward.Reconciliation do
       _ -> :ok
     end
   end
+
+  # Schedules the resource `backoff` milliseconds from now, storing the error.
+  defp reschedule_resource_after_error(controller, resource, exception, stacktrace, backoff) do
+    now = DateTime.utc_now()
+
+    controller
+    |> Query.resource(resource)
+    |> Query.schedule(now, DateTime.add(now, backoff, :millisecond))
+    |> Query.record_reconciliation_error(exception, stacktrace)
+    |> Query.touch(now)
+    |> repo(controller).update_all([])
+  end
+
+  # Sets `cancelled_at` without scheduling the resource.
+  defp mark_resource_cancelled(controller, resource) do
+    now = DateTime.utc_now()
+
+    controller
+    |> Query.resource(resource)
+    |> Query.cancel(now)
+    |> Query.touch(now)
+    |> repo(controller).update_all([])
+  end
+
+  defp repo(controller), do: controller.__steward__().__steward_config__().repo
 end
